@@ -3,35 +3,35 @@ package com.chat.backend.service;
 import com.chat.backend.dto.SignupRequest;
 import com.chat.backend.entity.User;
 import com.chat.backend.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 public class AuthService {
+    // 1. We define the fields with clear names
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    private final UserRepository userRepo;
-    private final BCryptPasswordEncoder encoder;
-    @Autowired
+    // 2. The constructor matches these names exactly
+    public AuthService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
-    public AuthService(UserRepository userRepo, BCryptPasswordEncoder encoder) {
-		super();
-		this.userRepo = userRepo;
-		this.encoder = encoder;
-	}
-
-	public User register(SignupRequest dto) {
+    public User register(SignupRequest dto) {
         User user = new User();
         user.setUsername(dto.getUsername());
         user.setPhone(dto.getPhone());
-        user.setPassword(encoder.encode(dto.getPassword()));
-        return userRepo.save(user);
+        
+        // 3. FIX: Changed 'encoder' to 'passwordEncoder' to match the field name above
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        
+        // 4. FIX: Changed 'userRepo' to 'userRepository' to match the field name above
+        return userRepository.save(user);
     }
 
     public User login(String phone) {
-        return userRepo.findByPhone(phone);
+        // 5. FIX: Changed 'userRepo' to 'userRepository'
+        return userRepository.findByPhone(phone);
     }
 }
