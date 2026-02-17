@@ -7,6 +7,7 @@ public class SignupRequest {
     private String username;
     private String phone;
     private String password;
+    private String otp;
 	public String getUsername() {
 		return username;
 	}
@@ -25,5 +26,13 @@ public class SignupRequest {
 	public void setPassword(String password) {
 		this.password = password;
 	}
+	public  String getOtp() {
+		return otp;
+	}
+	public  void setOtp(String otp) {
+		this.otp = otp;
+	}
+	
+	
     
 }
