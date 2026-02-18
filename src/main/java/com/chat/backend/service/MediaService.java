@@ -13,14 +13,12 @@ import java.util.UUID;
 @Service
 public class MediaService {
 
-    private final MediaRepository repo;
-    // This is where files will be stored on Render
-    private final String uploadDir = "uploads/media/";
+    // IMPORTANT: Make sure this matches your Render URL exactly
+    private final String BASE_URL = "https://chat-backend-9v66.onrender.com"; 
+    private final String UPLOAD_DIR = "uploads/media/";
 
     public MediaService(MediaRepository repo) {
-        this.repo = repo;
-        // Create the directory if it doesn't exist
-        File directory = new File(uploadDir);
+        File directory = new File(UPLOAD_DIR);
         if (!directory.exists()) {
             directory.mkdirs();
         }
@@ -31,15 +29,22 @@ public class MediaService {
             throw new IOException("File is empty");
         }
 
-        // 1. Generate unique filename to avoid overwrites
+        // 1. Generate unique filename
         String originalName = file.getOriginalFilename();
-        String extension = originalName.substring(originalName.lastIndexOf("."));
+        String extension = "";
+        if (originalName != null && originalName.contains(".")) {
+             extension = originalName.substring(originalName.lastIndexOf("."));
+        } else {
+             extension = ".jpg"; // Default fallback
+        }
         String fileName = UUID.randomUUID().toString() + extension;
 
-        // 2. Save file to disk
-        Path path = Paths.get(uploadDir + fileName);
+        // 2. Save file to "uploads/media/"
+        Path path = Paths.get(UPLOAD_DIR + fileName);
         Files.write(path, file.getBytes());
 
-        return fileName; // Return the new name to be saved in the database
+        // 3. RETURN THE FULL URL (This fixes the 404 error)
+        // Access path becomes: /uploads/media/filename.jpg
+        return BASE_URL + "/uploads/media/" + fileName; 
     }
 }
