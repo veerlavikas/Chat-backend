@@ -3,6 +3,11 @@ package com.chat.backend.controller;
 import com.chat.backend.entity.User;
 import com.chat.backend.repository.UserRepository;
 import com.chat.backend.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,11 +15,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.UUID;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/users")
@@ -26,14 +26,19 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    // ✅ Get my profile (Firebase Verified)
+    @GetMapping("/me")
+    public ResponseEntity<?> getMyProfile(@AuthenticationPrincipal User user) {
+        if (user == null) return ResponseEntity.status(401).body("Unauthorized");
+        return ResponseEntity.ok(user);
+    }
+
     // ✅ Upload / Update Profile Picture
     @PostMapping("/upload-dp")
     public ResponseEntity<?> uploadProfilePic(
             @RequestParam("file") MultipartFile file,
-            @RequestHeader("Authorization") String token
+            @AuthenticationPrincipal User user
     ) throws IOException {
-
-        User user = userService.getUserFromToken(token);
 
         String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
         Path uploadPath = Paths.get("uploads/profile");
@@ -46,7 +51,7 @@ public class UserController {
         Files.copy(file.getInputStream(), filePath);
 
         user.setProfilePic(fileName);
-        userService.save(user);
+        userRepo.save(user); // Use repo directly for a quick update
 
         return ResponseEntity.ok(Map.of(
                 "message", "Profile picture updated",
@@ -54,45 +59,27 @@ public class UserController {
         ));
     }
 
-    // 🔎 Find user by phone number (for new chat)
+    // 🔎 Find user by phone number
     @GetMapping("/by-phone/{phone}")
     public ResponseEntity<?> getUserByPhone(@PathVariable String phone) {
-
-        User user = userRepo.findByPhone(phone);
-
-        if (user == null) {
-            return ResponseEntity.notFound().build();
-        }
-
+        String normalized = phone.replace("+91", "").trim();
+        User user = userRepo.findByPhone(normalized);
+        if (user == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(user);
     }
 
-    // ✅ Get my profile (used by Settings screen)
-    @GetMapping("/me")
-    public ResponseEntity<?> getMyProfile(
-            @RequestHeader("Authorization") String token
-    ) {
-        User user = userService.getUserFromToken(token);
-        return ResponseEntity.ok(user);
-    }
- // 🔍 Search users by name or phone (New Chat)
-    @GetMapping("/search")
-    public ResponseEntity<?> searchUsers(@RequestParam String q) {
-
-        // normalize phone (optional but recommended)
-        String query = q.replaceAll("\\s+", "").replace("+91", "");
-
-        return ResponseEntity.ok(
-            userRepo.findByUsernameContainingIgnoreCaseOrPhoneContaining(
-                query, query
-            )
-        );
-    }
- // ✅ NEW: Get all users (used for Create Group and Contacts list)
+    // ✅ Get all users for Group Creation
     @GetMapping("/all")
     public ResponseEntity<?> getAllUsers() {
-        // This returns every user in your TiDB database
         return ResponseEntity.ok(userRepo.findAll());
     }
 
+    // 🔍 Search users
+    @GetMapping("/search")
+    public ResponseEntity<?> searchUsers(@RequestParam String q) {
+        String query = q.replaceAll("\\s+", "").replace("+91", "");
+        return ResponseEntity.ok(
+            userRepo.findByUsernameContainingIgnoreCaseOrPhoneContaining(query, query)
+        );
+    }
 }

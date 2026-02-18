@@ -2,7 +2,8 @@ package com.chat.backend.security;
 
 import com.chat.backend.entity.User;
 import com.chat.backend.repository.UserRepository;
-import io.jsonwebtoken.JwtException;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseToken;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +18,6 @@ import java.util.Collections;
 public class JwtFilter implements Filter {
 
     @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
     private UserRepository userRepo;
 
     @Override
@@ -30,27 +28,38 @@ public class JwtFilter implements Filter {
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-
-            String token = authHeader.substring(7);
+            String idToken = authHeader.substring(7);
 
             try {
-                String phone = jwtUtil.extractPhone(token);
+                // ✅ 1. Verify the token with Firebase Admin SDK
+                FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
+                
+                // ✅ 2. Extract phone number from the Claims map
+                // Firebase stores this under the "phone_number" key
+                String firebasePhone = (String) decodedToken.getClaims().get("phone_number");
 
-                User user = userRepo.findByPhone(phone);
+                if (firebasePhone != null) {
+                    // ✅ 3. Normalize the phone number
+                    // Firebase returns +91XXXXXXXXXX. If your DB stores just XXXXXXXXXX, strip the prefix.
+                    String normalizedPhone = firebasePhone.replace("+91", "").trim();
 
-                if (user != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UsernamePasswordAuthenticationToken auth =
-                            new UsernamePasswordAuthenticationToken(
-                                    phone,
-                                    null,
-                                    Collections.emptyList()
-                            );
+                    // ✅ 4. Find the user in your TiDB database
+                    User user = userRepo.findByPhone(normalizedPhone);
 
-                    SecurityContextHolder.getContext().setAuthentication(auth);
+                    if (user != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        // ✅ 5. Set the user in the Security Context
+                        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                                user, 
+                                null, 
+                                Collections.emptyList()
+                        );
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    }
                 }
 
-            } catch (JwtException e) {
-                // ❌ Invalid / expired / tampered token
+            } catch (Exception e) {
+                // Token is invalid, expired, or user not found
+                System.err.println("Firebase Auth Error: " + e.getMessage());
                 SecurityContextHolder.clearContext();
             }
         }
