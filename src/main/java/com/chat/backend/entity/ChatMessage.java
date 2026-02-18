@@ -2,7 +2,6 @@ package com.chat.backend.entity;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -16,8 +15,13 @@ public class ChatMessage {
     @Column(name = "sender_id", nullable = false)
     private Long senderId;
 
-    @Column(name = "receiver_id", nullable = false)
+    // Optional for Group Chats
+    @Column(name = "receiver_id")
     private Long receiverId;
+
+    // ✅ NEW: Supports Group Messaging
+    @Column(name = "group_id")
+    private Long groupId;
 
     @Column(length = 1000)
     private String content;
@@ -25,71 +29,46 @@ public class ChatMessage {
     @Column(name = "media_url")
     private String mediaUrl;
 
+    // ✅ NEW: Message Type (TEXT, IMAGE, DOC, etc.)
+    private String type = "TEXT";
+
+    // ✅ UPDATED: Replaces 'seen' with WhatsApp-style status 
+    // (0=Sending, 1=Sent, 2=Delivered, 3=Seen)
     @Column(nullable = false)
-    private boolean seen = false;   // ✅ default
+    private int status = 1; 
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    // 🔹 REQUIRED no-args constructor
     public ChatMessage() {}
 
-    // ✅ GETTERS & SETTERS (NO final, NO Lombok)
+    // --- GETTERS & SETTERS ---
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Long getSenderId() { return senderId; }
+    public void setSenderId(Long senderId) { this.senderId = senderId; }
 
-    public Long getSenderId() {
-        return senderId;
-    }
+    public Long getReceiverId() { return receiverId; }
+    public void setReceiverId(Long receiverId) { this.receiverId = receiverId; }
 
-    public void setSenderId(Long senderId) {
-        this.senderId = senderId;
-    }
+    public Long getGroupId() { return groupId; }
+    public void setGroupId(Long groupId) { this.groupId = groupId; }
 
-    public Long getReceiverId() {
-        return receiverId;
-    }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
 
-    public void setReceiverId(Long receiverId) {
-        this.receiverId = receiverId;
-    }
+    public String getMediaUrl() { return mediaUrl; }
+    public void setMediaUrl(String mediaUrl) { this.mediaUrl = mediaUrl; }
 
-    public String getContent() {
-        return content;
-    }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
 
-    public void setContent(String content) {
-        this.content = content;
-    }
+    public int getStatus() { return status; }
+    public void setStatus(int status) { this.status = status; }
 
-    public String getMediaUrl() {
-        return mediaUrl;
-    }
-
-    public void setMediaUrl(String mediaUrl) {
-        this.mediaUrl = mediaUrl;
-    }
-
-    public boolean isSeen() {
-        return seen;
-    }
-
-    public void setSeen(boolean seen) {
-        this.seen = seen;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-	public  void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

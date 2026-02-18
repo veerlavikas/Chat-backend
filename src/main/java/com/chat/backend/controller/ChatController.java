@@ -75,9 +75,17 @@ public class ChatController {
     }
 
     // ✅ CHAT HISTORY
+    
+ // Inside ChatController.java
+
     @GetMapping("/history/{me}/{other}")
-    public ResponseEntity<?> history(@PathVariable Long me, @PathVariable Long other) {
-        return ResponseEntity.ok(chatService.getHistory(me, other));
+    public ResponseEntity<?> history(
+            @PathVariable Long me,
+            @PathVariable Long other,
+            @RequestParam(required = false) Long groupId // ✅ Add this
+    ) {
+        // Pass 'other' as receiver and the new groupId parameter
+        return ResponseEntity.ok(chatService.getHistory(me, other, groupId));
     }
 
     // ✅ CHAT LIST
