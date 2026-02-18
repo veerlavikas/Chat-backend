@@ -88,5 +88,11 @@ public class UserController {
             )
         );
     }
+ // ✅ NEW: Get all users (used for Create Group and Contacts list)
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllUsers() {
+        // This returns every user in your TiDB database
+        return ResponseEntity.ok(userRepo.findAll());
+    }
 
 }
