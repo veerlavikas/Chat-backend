@@ -20,28 +20,28 @@ public class OtpVerification {
         this.code = code;
         this.expiryTime = LocalDateTime.now().plusMinutes(5); // Valid for 5 mins
     }
-	public final Long getId() {
+	public  Long getId() {
 		return id;
 	}
-	public final void setId(Long id) {
+	public  void setId(Long id) {
 		this.id = id;
 	}
-	public final String getPhone() {
+	public  String getPhone() {
 		return phone;
 	}
-	public final void setPhone(String phone) {
+	public  void setPhone(String phone) {
 		this.phone = phone;
 	}
-	public final String getCode() {
+	public  String getCode() {
 		return code;
 	}
-	public final void setCode(String code) {
+	public  void setCode(String code) {
 		this.code = code;
 	}
-	public final LocalDateTime getExpiryTime() {
+	public  LocalDateTime getExpiryTime() {
 		return expiryTime;
 	}
-	public final void setExpiryTime(LocalDateTime expiryTime) {
+	public  void setExpiryTime(LocalDateTime expiryTime) {
 		this.expiryTime = expiryTime;
 	}
     
