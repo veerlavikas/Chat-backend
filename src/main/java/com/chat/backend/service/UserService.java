@@ -27,7 +27,8 @@ public class UserService {
         if (user == null) {
             user = new User();
             user.setPhone(phone);
-            user.setUsername("User_" + phone.substring(phone.length() - 4)); // Default username
+            // Leave username null so ProfileSetupScreen can handle it!
+            user.setUsername(null); 
             return repo.save(user);
         }
         return user;

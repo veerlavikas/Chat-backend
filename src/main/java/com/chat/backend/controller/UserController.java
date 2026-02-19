@@ -33,12 +33,36 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+    // ✅ NEW: Update Username (Used by ProfileSetupScreen)
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal User user
+    ) {
+        if (user == null) return ResponseEntity.status(401).body("Unauthorized");
+        
+        String newUsername = body.get("username");
+        if (newUsername == null || newUsername.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Username cannot be empty");
+        }
+
+        user.setUsername(newUsername);
+        userRepo.save(user); // Persistence handles the TiDB update
+        
+        return ResponseEntity.ok(Map.of(
+                "message", "Username updated successfully",
+                "username", newUsername
+        ));
+    }
+
     // ✅ Upload / Update Profile Picture
     @PostMapping("/upload-dp")
     public ResponseEntity<?> uploadProfilePic(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal User user
     ) throws IOException {
+
+        if (user == null) return ResponseEntity.status(401).body("Unauthorized");
 
         String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
         Path uploadPath = Paths.get("uploads/profile");
@@ -51,7 +75,7 @@ public class UserController {
         Files.copy(file.getInputStream(), filePath);
 
         user.setProfilePic(fileName);
-        userRepo.save(user); // Use repo directly for a quick update
+        userRepo.save(user);
 
         return ResponseEntity.ok(Map.of(
                 "message", "Profile picture updated",
