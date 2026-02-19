@@ -1,5 +1,6 @@
 package com.chat.backend.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
@@ -8,12 +9,16 @@ import java.util.*;
 @Service
 public class GeminiService {
 
-    // ✅ Your API Key is now integrated
-    private final String API_KEY = "AIzaSyB1p-xBfh6aeGKtAPH73zIcJcjcS2NJsng"; 
-    private final String GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + API_KEY;
+    // ✅ Securely pulls the API key from application.properties
+    @Value("${gemini.api.key}")
+    private String apiKey;
 
     public String getGeminiResponse(String userMessage) {
         try {
+            // ✅ Build the URL dynamically inside the method
+            // This ensures the injected apiKey is ready to use
+            String geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+
             RestTemplate restTemplate = new RestTemplate();
 
             HttpHeaders headers = new HttpHeaders();
@@ -31,8 +36,8 @@ public class GeminiService {
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-            // Execute the POST request
-            ResponseEntity<Map> response = restTemplate.postForEntity(GEMINI_URL, entity, Map.class);
+            // Execute the POST request with the dynamic URL
+            ResponseEntity<Map> response = restTemplate.postForEntity(geminiUrl, entity, Map.class);
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> body = response.getBody();
@@ -50,7 +55,8 @@ public class GeminiService {
 
         } catch (Exception e) {
             System.err.println("GEMINI ERROR: " + e.getMessage());
-            return "Meta AI is currently unavailable. Please try again later.";
+            // ✅ Corrected the fallback message to reflect Gemini
+            return "Gemini AI is currently unavailable. Please try again later.";
         }
     }
 }

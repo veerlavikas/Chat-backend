@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# 🚨 Ignore the Firebase private key! 🚨
+src/main/resources/serviceAccountKey.json
+
+serviceAccountKey*
