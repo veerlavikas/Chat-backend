@@ -26,7 +26,6 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // ✅ 1. ENABLE CORS
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(cs -> cs.disable()) 
             .authorizeHttpRequests(auth -> auth
@@ -40,11 +39,10 @@ public class WebSecurityConfig {
         return http.build();
     }
 
-    // ✅ 2. CORS CONFIGURATION BEAN
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*")); // Allow all for testing
+        configuration.setAllowedOrigins(Arrays.asList("*")); 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
         

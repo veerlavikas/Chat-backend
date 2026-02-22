@@ -1,9 +1,7 @@
 package com.chat.backend.security;
 
 import com.chat.backend.entity.User;
-import com.chat.backend.service.UserService; // ✅ Import your service
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseToken;
+import com.chat.backend.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,12 +14,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Optional;
 
 @Component
-public class JwtFilter extends OncePerRequestFilter { // ✅ Safer Filter
+public class JwtFilter extends OncePerRequestFilter {
 
     @Autowired
-    private UserService userService; // ✅ Use Service instead of Repo
+    private UserService userService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -30,24 +32,15 @@ public class JwtFilter extends OncePerRequestFilter { // ✅ Safer Filter
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String idToken = authHeader.substring(7);
+            String token = authHeader.substring(7);
 
             try {
-                // 1. Verify the token with Firebase Admin SDK
-                FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
-                
-                // 2. Extract phone number
-                String firebasePhone = (String) decodedToken.getClaims().get("phone_number");
+                String phone = jwtUtil.extractPhone(token);
 
-                if (firebasePhone != null) {
-                    // 3. Normalize the phone number
-                    String normalizedPhone = firebasePhone.replace("+91", "").trim();
+                if (phone != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    Optional<User> user = userService.getByPhone(phone);
 
-                    // ✅ 4. Sync User: Finds existing OR creates a brand new user!
-                    User user = userService.syncUser(normalizedPhone);
-
-                    if (user != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                        // 5. Set the user in the Security Context
+                    if (user != null) {
                         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                                 user, null, Collections.emptyList()
                         );
@@ -56,7 +49,7 @@ public class JwtFilter extends OncePerRequestFilter { // ✅ Safer Filter
                 }
 
             } catch (Exception e) {
-                System.err.println("Firebase Auth Error: " + e.getMessage());
+                System.err.println("JWT Validation Error: " + e.getMessage());
                 SecurityContextHolder.clearContext();
             }
         }

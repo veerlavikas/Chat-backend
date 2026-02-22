@@ -10,8 +10,16 @@ import java.util.List;
 @Repository
 public interface GroupRepository extends JpaRepository<ChatGroup, Long> {
     
-    // ✅ Find groups where the memberIds list contains 'myId'
-    // Note: Since memberIds is an @ElementCollection, we use the 'MEMBER OF' keyword
-    @Query("SELECT g FROM ChatGroup g WHERE :myId MEMBER OF g.memberIds")
-    List<ChatGroup> findMyGroups(@Param("myId") Long myId);
+    /**
+     * ✅ Find groups where the provided phone number is a member.
+     * Updated to use String phone instead of Long ID.
+     */
+    @Query("SELECT g FROM ChatGroup g JOIN g.memberPhones p WHERE p = :phone")
+    List<ChatGroup> findGroupsByMemberPhone(@Param("phone") String phone);
+
+    /**
+     * ✅ Alternative: If you are using @ElementCollection for phone numbers
+     */
+    @Query("SELECT g FROM ChatGroup g WHERE :phone MEMBER OF g.memberPhones")
+    List<ChatGroup> findMyGroupsByPhone(@Param("phone") String phone);
 }

@@ -3,8 +3,8 @@ package com.chat.backend.dto;
 import java.time.LocalDateTime;
 
 public class ChatListDTO {
-    private Long userId;        // For Private Chat
-    private Long groupId;       // ✅ NEW: For Group Chat
+    private String phone;       // ✅ Changed from Long userId to String phone
+    private Long groupId;       // For Group Chat
     
     private String username;    // User Name or Group Name
     private String profilePic;  // User Icon or Group Icon
@@ -15,8 +15,9 @@ public class ChatListDTO {
     // Constructors
     public ChatListDTO() {}
 
-    public ChatListDTO(Long userId, String username, String profilePic, String lastMessage, LocalDateTime lastMessageTime) {
-        this.userId = userId;
+    // ✅ Updated Constructor
+    public ChatListDTO(String phone, String username, String profilePic, String lastMessage, LocalDateTime lastMessageTime) {
+        this.phone = phone;
         this.username = username;
         this.profilePic = profilePic;
         this.lastMessage = lastMessage;
@@ -24,13 +25,13 @@ public class ChatListDTO {
     }
 
     // ✅ Getters & Setters
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
     
     public Long getGroupId() { return groupId; }
     public void setGroupId(Long groupId) { this.groupId = groupId; }
     
-    public String getUsername() { return username; } // This will hold GroupName if it's a group
+    public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
     
     public String getProfilePic() { return profilePic; }

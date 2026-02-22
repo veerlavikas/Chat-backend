@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class ChatService {
@@ -24,64 +23,75 @@ public class ChatService {
         return chatRepo.save(msg);
     }
 
-    // ✅ THE UPDATED GET CHATS METHOD
-    public List<ChatListDTO> getChats(Long myId) {
+    /**
+     * ✅ THE UPDATED GET CHATS METHOD (Phone-based)
+     */
+    public List<ChatListDTO> getChats(String myPhone) {
         List<ChatListDTO> chatList = new ArrayList<>();
-        Set<Long> processedIds = new HashSet<>();
+        Set<String> processedPhones = new HashSet<>();
 
         // 1. FETCH PRIVATE CHATS
-        // (Logic: Get all messages involving me, group by other user)
-        List<ChatMessage> allMyMessages = chatRepo.findBySenderIdOrReceiverId(myId, myId);
+        // Logic: Get all messages where I am sender OR receiver
+        List<ChatMessage> allMyMessages = chatRepo.findBySenderPhoneOrReceiverPhone(myPhone, myPhone);
         
-        // Sort by newest first to capture the latest message
+        // Sort by newest first
         allMyMessages.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
 
         for (ChatMessage msg : allMyMessages) {
-            // Skip if this is a Group Message (we handle groups separately below)
             if (msg.getGroupId() != null) continue;
 
-            Long otherUserId = msg.getSenderId().equals(myId) ? msg.getReceiverId() : msg.getSenderId();
+            String otherPhone = msg.getSenderPhone().equals(myPhone) ? msg.getReceiverPhone() : msg.getSenderPhone();
 
-            if (!processedIds.contains(otherUserId)) {
-                User otherUser = userRepo.findById(otherUserId).orElse(null);
-                if (otherUser != null) {
+            if (!processedPhones.contains(otherPhone)) {
+                // Find the other user's profile info
+                User otherUser = userRepo.findByPhone(otherPhone).orElse(null);
+                
+                if (otherUser != null || "9999".equals(otherPhone)) {
                     ChatListDTO dto = new ChatListDTO();
-                    dto.setUserId(otherUser.getId());
-                    dto.setUsername(otherUser.getUsername());
-                    dto.setProfilePic(otherUser.getProfilePic());
-                    dto.setLastMessage(msg.getContent() != null ? msg.getContent() : "Sent an image");
+                    
+                    if ("9999".equals(otherPhone)) {
+                        dto.setUsername("Meta AI");
+                        dto.setPhone("9999");
+                        dto.setProfilePic("https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg"); // Placeholder Meta logo
+                    } else {
+                        dto.setUsername(otherUser.getUsername());
+                        dto.setPhone(otherUser.getPhone());
+                        dto.setProfilePic(otherUser.getProfilePic());
+                    }
+
+                    dto.setLastMessage(msg.getContent() != null ? msg.getContent() : "Sent a file");
                     dto.setLastMessageTime(msg.getCreatedAt());
                     
                     chatList.add(dto);
-                    processedIds.add(otherUserId);
+                    processedPhones.add(otherPhone);
                 }
             }
         }
 
         // 2. FETCH GROUP CHATS
-        List<ChatGroup> myGroups = groupRepo.findMyGroups(myId);
+        // We still use Long for group identification as it's a relational ID
+        List<ChatGroup> myGroups = groupRepo.findGroupsByMemberPhone(myPhone);
         
         for (ChatGroup group : myGroups) {
             ChatListDTO groupDto = new ChatListDTO();
-            groupDto.setGroupId(group.getId()); // ✅ Set Group ID
-            groupDto.setUsername(group.getName()); // ✅ Set Group Name as Username
+            groupDto.setGroupId(group.getId());
+            groupDto.setUsername(group.getName());
             groupDto.setProfilePic(group.getGroupIcon());
             
-            // Find last message for this group
             ChatMessage lastGroupMsg = chatRepo.findTopByGroupIdOrderByCreatedAtDesc(group.getId());
             
             if (lastGroupMsg != null) {
-                groupDto.setLastMessage(lastGroupMsg.getContent() != null ? lastGroupMsg.getContent() : "Image");
+                groupDto.setLastMessage(lastGroupMsg.getContent() != null ? lastGroupMsg.getContent() : "File");
                 groupDto.setLastMessageTime(lastGroupMsg.getCreatedAt());
             } else {
                 groupDto.setLastMessage("Group created");
-                groupDto.setLastMessageTime(java.time.LocalDateTime.now()); // Placeholder
+                groupDto.setLastMessageTime(group.getCreatedAt());
             }
             
             chatList.add(groupDto);
         }
 
-        // 3. SORT EVERYTHING BY TIME (Newest First)
+        // 3. SORT EVERYTHING BY TIME (WhatsApp style)
         chatList.sort((a, b) -> {
             if (a.getLastMessageTime() == null) return 1;
             if (b.getLastMessageTime() == null) return -1;
@@ -91,11 +101,23 @@ public class ChatService {
         return chatList;
     }
     
-    // Helper for History (unchanged)
- // Inside ChatService.java
-
-    public List<ChatMessage> getHistory(Long me, Long other, Long groupId) {
-        // We now use the custom query method defined in the Repository
-        return chatRepo.findChatHistory(me, other, groupId);
+    /**
+     * ✅ FETCH CHAT HISTORY (Phone-based)
+     */
+    /**
+     * ✅ FETCH CHAT HISTORY (Refined)
+     */
+    public List<ChatMessage> getHistory(String me, String other, Long groupId) {
+        // If it's a group chat, we only care about the groupId
+        if (groupId != null) {
+            return chatRepo.findByGroupIdOrderByCreatedAtAsc(groupId);
+        }
+        
+        // If it's a private chat, we need both phone numbers
+        if (me != null && other != null) {
+            return chatRepo.findChatHistory(me, other, null);
+        }
+        
+        return new ArrayList<>();
     }
 }

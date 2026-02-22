@@ -5,35 +5,34 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "chat_message")
+@Table(name = "chat_messages") // Standardizing table name
 public class ChatMessage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "sender_id", nullable = false)
-    private Long senderId;
+    // ✅ UPDATED: Changed from Long to String to store Phone Numbers
+    @Column(name = "sender_phone", nullable = false)
+    private String senderPhone;
 
-    // Optional for Group Chats
-    @Column(name = "receiver_id")
-    private Long receiverId;
+    // ✅ UPDATED: Changed from Long to String
+    @Column(name = "receiver_phone")
+    private String receiverPhone;
 
-    // ✅ NEW: Supports Group Messaging
+    // Supports Group Messaging (Kept as Long for Group ID reference)
     @Column(name = "group_id")
     private Long groupId;
 
-    @Column(length = 1000)
+    @Column(length = 2000) // Increased length for longer AI responses or encrypted text
     private String content;
 
     @Column(name = "media_url")
     private String mediaUrl;
 
-    // ✅ NEW: Message Type (TEXT, IMAGE, DOC, etc.)
-    private String type = "TEXT";
+    private String type = "TEXT"; // TEXT, IMAGE, AUDIO, VIDEO
 
-    // ✅ UPDATED: Replaces 'seen' with WhatsApp-style status 
-    // (0=Sending, 1=Sent, 2=Delivered, 3=Seen)
+    // WhatsApp-style status (0=Sending, 1=Sent, 2=Delivered, 3=Seen)
     @Column(nullable = false)
     private int status = 1; 
 
@@ -48,11 +47,11 @@ public class ChatMessage {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public Long getSenderId() { return senderId; }
-    public void setSenderId(Long senderId) { this.senderId = senderId; }
+    public String getSenderPhone() { return senderPhone; }
+    public void setSenderPhone(String senderPhone) { this.senderPhone = senderPhone; }
 
-    public Long getReceiverId() { return receiverId; }
-    public void setReceiverId(Long receiverId) { this.receiverId = receiverId; }
+    public String getReceiverPhone() { return receiverPhone; }
+    public void setReceiverPhone(String receiverPhone) { this.receiverPhone = receiverPhone; }
 
     public Long getGroupId() { return groupId; }
     public void setGroupId(Long groupId) { this.groupId = groupId; }

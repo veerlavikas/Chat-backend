@@ -3,16 +3,19 @@ package com.chat.backend.controller;
 import com.chat.backend.dto.ChatListDTO;
 import com.chat.backend.dto.MessageDTO;
 import com.chat.backend.entity.ChatMessage;
+import com.chat.backend.entity.User;
+import com.chat.backend.repository.UserRepository; // ✅ Added Import
 import com.chat.backend.service.ChatService;
-import com.chat.backend.service.GeminiService; // ✅ Import this
-
+import com.chat.backend.service.GeminiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.simp.SimpMessagingTemplate; // ✅ Import for WebSocket
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors; // ✅ Added Import
 
 @RestController
 @RequestMapping("/api/chat")
@@ -22,49 +25,56 @@ public class ChatController {
     private ChatService chatService;
 
     @Autowired
-    private GeminiService geminiService; // ✅ Inject AI Service
+    private UserRepository userRepository; // ✅ Inject this for search functionality
 
     @Autowired
-    private SimpMessagingTemplate messagingTemplate; // ✅ Inject WebSocket Template
+    private GeminiService geminiService;
 
-    // ✅ SEND MESSAGE (Updated with AI Logic)
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    /**
+     * ✅ SEND MESSAGE
+     * Uses @AuthenticationPrincipal to get the sender's phone securely from the JWT.
+     */
     @PostMapping("/send")
-    public ResponseEntity<?> send(@RequestBody MessageDTO dto) {
+    public ResponseEntity<?> send(@RequestBody MessageDTO dto, @AuthenticationPrincipal User currentUser) {
+        if (currentUser == null) return ResponseEntity.status(401).body("Unauthorized");
 
-        // 1. Save User's Message Normally
         ChatMessage msg = new ChatMessage();
-        msg.setSenderId(dto.getSenderId());
-        msg.setReceiverId(dto.getReceiverId());
+        msg.setSenderPhone(currentUser.getPhone()); 
+        msg.setReceiverPhone(dto.getReceiverPhone()); 
         msg.setContent(dto.getContent());
         msg.setCreatedAt(LocalDateTime.now());
         
         ChatMessage savedMsg = chatService.save(msg);
 
-        // 2. 🔥 CHECK IF RECEIVER IS META AI (ID 9999)
-        if (dto.getReceiverId() == 9999L) {
-            
-            // Run AI Logic in a separate thread to avoid blocking the user
+        // Notify Receiver via WebSocket
+        messagingTemplate.convertAndSendToUser(
+            dto.getReceiverPhone(), 
+            "/queue/messages", 
+            savedMsg
+        );
+
+        // 🔥 AI Bot Integration
+        if ("9999".equals(dto.getReceiverPhone())) {
             new Thread(() -> {
                 try {
-                    // Call Gemini API
                     String aiReplyText = geminiService.getGeminiResponse(dto.getContent());
 
-                    // Create AI Response Message
                     ChatMessage aiMsg = new ChatMessage();
-                    aiMsg.setSenderId(9999L); // Bot ID
-                    aiMsg.setReceiverId(dto.getSenderId()); // Reply to User
+                    aiMsg.setSenderPhone("9999");
+                    aiMsg.setReceiverPhone(currentUser.getPhone());
                     aiMsg.setContent(aiReplyText);
                     aiMsg.setCreatedAt(LocalDateTime.now());
 
-                    // Save to DB
                     ChatMessage savedAiMsg = chatService.save(aiMsg);
 
-                    // 🚀 PUSH TO WEBSOCKET (So user sees it instantly)
-                    messagingTemplate.convertAndSend(
-                        "/topic/messages/" + dto.getSenderId(), 
+                    messagingTemplate.convertAndSendToUser(
+                        currentUser.getPhone(),
+                        "/queue/messages",
                         savedAiMsg
                     );
-
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -74,23 +84,49 @@ public class ChatController {
         return ResponseEntity.ok(savedMsg);
     }
 
-    // ✅ CHAT HISTORY
-    
- // Inside ChatController.java
+    /**
+     * ✅ SEARCH USERS
+     * Used for starting a new chat by searching phone numbers.
+     */
+    @GetMapping("/search")
+    public ResponseEntity<?> searchUsers(@RequestParam String phone, @AuthenticationPrincipal User currentUser) {
+        if (currentUser == null) return ResponseEntity.status(401).body("Unauthorized");
 
-    @GetMapping("/history/{me}/{other}")
-    public ResponseEntity<?> history(
-            @PathVariable Long me,
-            @PathVariable Long other,
-            @RequestParam(required = false) Long groupId // ✅ Add this
-    ) {
-        // Pass 'other' as receiver and the new groupId parameter
-        return ResponseEntity.ok(chatService.getHistory(me, other, groupId));
+        List<User> users = userRepository.findByPhoneContaining(phone)
+                            .stream()
+                            .filter(u -> !u.getPhone().equals(currentUser.getPhone()))
+                            .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
     }
 
-    // ✅ CHAT LIST
-    @GetMapping("/chats/{myId}")
-    public ResponseEntity<List<ChatListDTO>> chats(@PathVariable Long myId) {
-        return ResponseEntity.ok(chatService.getChats(myId));
+    /**
+     * ✅ CHAT HISTORY
+     */
+    @GetMapping("/history/{otherPhone}")
+    public ResponseEntity<?> history(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable String otherPhone,
+            @RequestParam(required = false) Long groupId
+    ) {
+        if (currentUser == null) return ResponseEntity.status(401).body("Unauthorized");
+        return ResponseEntity.ok(chatService.getHistory(currentUser.getPhone(), otherPhone, groupId));
+    }
+
+    /**
+     * ✅ CHAT LIST (Inbox)
+     */
+    @GetMapping("/chats")
+    public ResponseEntity<List<ChatListDTO>> chats(@AuthenticationPrincipal User currentUser) {
+        if (currentUser == null) {
+            // ❌ Avoid: return ResponseEntity.status(401).body("Unauthorized"); 
+            // This causes the mismatch because "Unauthorized" is a String.
+            
+            return ResponseEntity.status(401).build(); 
+        }
+
+        List<ChatListDTO> history = chatService.getChats(currentUser.getPhone());
+        
+        // If the list is empty, return the empty list object, not a String message
+        return ResponseEntity.ok(history); 
     }
 }

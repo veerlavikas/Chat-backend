@@ -9,8 +9,10 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
     
     // Find all active statuses from all users (last 24h)
     List<Status> findByExpiresAtAfter(LocalDateTime now);
+    List<Status> findByExpiresAtBefore(LocalDateTime now);
 
-    // ✅ Add this to fix the "undefined" error
-    // Find a specific user's active statuses
-    List<Status> findByUserIdAndExpiresAtAfter(Long userId, LocalDateTime now);
+    // ✅ UPDATED: Find a specific user's active statuses using phone string
+    List<Status> findByPhoneAndExpiresAtAfter(String phone, LocalDateTime now);
+    
+    void deleteByExpiresAtBefore(LocalDateTime now);
 }

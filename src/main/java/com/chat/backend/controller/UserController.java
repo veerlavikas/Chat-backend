@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -26,14 +27,12 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    // ✅ Get my profile (Firebase Verified)
     @GetMapping("/me")
     public ResponseEntity<?> getMyProfile(@AuthenticationPrincipal User user) {
         if (user == null) return ResponseEntity.status(401).body("Unauthorized");
         return ResponseEntity.ok(user);
     }
 
-    // ✅ NEW: Update Username (Used by ProfileSetupScreen)
     @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(
             @RequestBody Map<String, String> body,
@@ -47,7 +46,7 @@ public class UserController {
         }
 
         user.setUsername(newUsername);
-        userRepo.save(user); // Persistence handles the TiDB update
+        userRepo.save(user); 
         
         return ResponseEntity.ok(Map.of(
                 "message", "Username updated successfully",
@@ -55,7 +54,6 @@ public class UserController {
         ));
     }
 
-    // ✅ Upload / Update Profile Picture
     @PostMapping("/upload-dp")
     public ResponseEntity<?> uploadProfilePic(
             @RequestParam("file") MultipartFile file,
@@ -83,25 +81,24 @@ public class UserController {
         ));
     }
 
-    // 🔎 Find user by phone number
     @GetMapping("/by-phone/{phone}")
     public ResponseEntity<?> getUserByPhone(@PathVariable String phone) {
-        String normalized = phone.replace("+91", "").trim();
-        User user = userRepo.findByPhone(normalized);
+        String normalizedPhone = phone.replace("+91", "").trim(); 
+        
+        Optional<User> user = userRepo.findByPhone(normalizedPhone);
         if (user == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(user);
     }
 
-    // ✅ Get all users for Group Creation
     @GetMapping("/all")
     public ResponseEntity<?> getAllUsers() {
         return ResponseEntity.ok(userRepo.findAll());
     }
 
-    // 🔍 Search users
     @GetMapping("/search")
     public ResponseEntity<?> searchUsers(@RequestParam String q) {
         String query = q.replaceAll("\\s+", "").replace("+91", "");
+        
         return ResponseEntity.ok(
             userRepo.findByUsernameContainingIgnoreCaseOrPhoneContaining(query, query)
         );

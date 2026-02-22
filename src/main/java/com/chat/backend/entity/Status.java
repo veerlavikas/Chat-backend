@@ -11,11 +11,12 @@ public class Status {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long userId; // Who posted this?
-    private String username; // Store name to display quickly
+    // ✅ Changed from Long userId to String phone for consistency
+    private String phone; 
+    private String username; 
     private String userProfilePic; 
 
-    private String mediaUrl; // Image or Video URL
+    private String mediaUrl; 
     private String caption;
     private String type; // "IMAGE" or "VIDEO"
 
@@ -24,63 +25,34 @@ public class Status {
 
     public Status() {
         this.createdAt = LocalDateTime.now();
-        this.expiresAt = LocalDateTime.now().plusHours(24); // Auto-expire logic
+        this.expiresAt = LocalDateTime.now().plusHours(24);
     }
 
     // Getters and Setters
     public Long getId() { return id; }
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+
+    public String getUserProfilePic() { return userProfilePic; }
+    public void setUserProfilePic(String userProfilePic) { this.userProfilePic = userProfilePic; }
+
     public String getMediaUrl() { return mediaUrl; }
     public void setMediaUrl(String mediaUrl) { this.mediaUrl = mediaUrl; }
+
+    public String getCaption() { return caption; }
+    public void setCaption(String caption) { this.caption = caption; }
+
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
     public LocalDateTime getExpiresAt() { return expiresAt; }
-    // Add other getters/setters as needed
-
-	public  String getUsername() {
-		return username;
-	}
-
-	public  void setUsername(String username) {
-		this.username = username;
-	}
-
-	public  String getUserProfilePic() {
-		return userProfilePic;
-	}
-
-	public  void setUserProfilePic(String userProfilePic) {
-		this.userProfilePic = userProfilePic;
-	}
-
-	public  String getCaption() {
-		return caption;
-	}
-
-	public  void setCaption(String caption) {
-		this.caption = caption;
-	}
-
-	public  String getType() {
-		return type;
-	}
-
-	public  void setType(String type) {
-		this.type = type;
-	}
-
-	public  LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
-
-	public  void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
-
-	public  void setId(Long id) {
-		this.id = id;
-	}
-
-	public  void setExpiresAt(LocalDateTime expiresAt) {
-		this.expiresAt = expiresAt;
-	}
+    public void setExpiresAt(LocalDateTime expiresAt) { this.expiresAt = expiresAt; }
 }

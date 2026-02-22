@@ -2,22 +2,24 @@ package com.chat.backend.dto;
 
 public class MessageDTO {
 
-    private Long senderId;
-    private Long receiverId;
+    private String senderPhone;   // ✅ Changed from Long to String
+    private String receiverPhone; // ✅ Changed from Long to String
     private String content;
+    private Long groupId;         // ✅ Added for Group Chat support
 
-    public Long getSenderId() {
-        return senderId;
+    // Getters and Setters
+    public String getSenderPhone() {
+        return senderPhone;
     }
-    public void setSenderId(Long senderId) {
-        this.senderId = senderId;
+    public void setSenderPhone(String senderPhone) {
+        this.senderPhone = senderPhone;
     }
 
-    public Long getReceiverId() {
-        return receiverId;
+    public String getReceiverPhone() {
+        return receiverPhone;
     }
-    public void setReceiverId(Long receiverId) {
-        this.receiverId = receiverId;
+    public void setReceiverPhone(String receiverPhone) {
+        this.receiverPhone = receiverPhone;
     }
 
     public String getContent() {
@@ -25,5 +27,12 @@ public class MessageDTO {
     }
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public Long getGroupId() {
+        return groupId;
+    }
+    public void setGroupId(Long groupId) {
+        this.groupId = groupId;
     }
 }

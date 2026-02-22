@@ -12,55 +12,62 @@ public class WebSocketController {
     private final ChatService service;
     private final SimpMessagingTemplate template;
 
-    public WebSocketController(ChatService service,
-                               SimpMessagingTemplate template) {
+    public WebSocketController(ChatService service, SimpMessagingTemplate template) {
         this.service = service;
         this.template = template;
     }
 
     /**
      * 🔥 Send message (TEXT / IMAGE / AUDIO)
-     * Destination: /app/chat.send
+     * Destination from Mobile: /app/chat.send
      */
     @MessageMapping("/chat.send")
     public void send(ChatMessage msg) {
-
         // 1️⃣ Save message to DB
+        // (This now uses the senderPhone and receiverPhone fields we added)
         ChatMessage saved = service.save(msg);
 
-        // 2️⃣ Send to receiver (real-time)
-        template.convertAndSend(
-                "/topic/chat/" + msg.getReceiverId(),
+        // 2️⃣ Send to receiver (real-time private queue)
+        // Subscribers on Mobile: /user/{receiverPhone}/queue/messages
+        template.convertAndSendToUser(
+                msg.getReceiverPhone(),
+                "/queue/messages",
                 saved
         );
 
-        // 3️⃣ Send back to sender (sync UI)
-        template.convertAndSend(
-                "/topic/chat/" + msg.getSenderId(),
+        // 3️⃣ Send back to sender (To sync multiple devices if needed)
+        // Subscribers on Mobile: /user/{senderPhone}/queue/messages
+        template.convertAndSendToUser(
+                msg.getSenderPhone(),
+                "/queue/messages",
                 saved
         );
     }
 
     /**
      * ⌨️ Typing indicator
-     * Destination: /app/chat.typing
+     * Destination from Mobile: /app/chat.typing
      */
     @MessageMapping("/chat.typing")
     public void typing(ChatMessage msg) {
-        template.convertAndSend(
-                "/topic/typing/" + msg.getReceiverId(),
+        // This notifies the receiver that 'senderPhone' is typing
+        template.convertAndSendToUser(
+                msg.getReceiverPhone(),
+                "/queue/typing",
                 msg
         );
     }
 
     /**
-     * 👀 Seen indicator
-     * Destination: /app/chat.seen
+     * 👀 Seen indicator (Double Tick logic)
+     * Destination from Mobile: /app/chat.seen
      */
     @MessageMapping("/chat.seen")
     public void seen(ChatMessage msg) {
-        template.convertAndSend(
-                "/topic/seen/" + msg.getSenderId(),
+        // Notify the original sender that their message was read
+        template.convertAndSendToUser(
+                msg.getSenderPhone(),
+                "/queue/seen",
                 msg
         );
     }

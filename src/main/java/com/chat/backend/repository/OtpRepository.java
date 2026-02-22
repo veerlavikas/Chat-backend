@@ -8,9 +8,9 @@ import java.util.Optional;
 @Repository
 public interface OtpRepository extends JpaRepository<OtpVerification, Long> {
     
-    // To find the latest code sent to a specific phone number
-    Optional<OtpVerification> findTopByPhoneOrderByExpiryTimeDesc(String phone);
+    // Changed Phone to Email
+    Optional<OtpVerification> findTopByEmailOrderByExpiryTimeDesc(String email);
     
-    // To clean up expired codes (optional, but good for database health)
-    void deleteByPhone(String phone);
+    // Changed Phone to Email
+    void deleteByEmail(String email);
 }

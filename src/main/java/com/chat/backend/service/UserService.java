@@ -5,6 +5,7 @@ import com.chat.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Optional;
 
 @Service
 public class UserService {
@@ -16,22 +17,19 @@ public class UserService {
         this.repo = repo;
     }
 
-    public User getByPhone(String phone) {
+    public Optional<User> getByPhone(String phone) {
         return repo.findByPhone(phone);
     }
 
-    // ✅ Sync Firebase User with TiDB
     @Transactional
     public User syncUser(String phone) {
-        User user = repo.findByPhone(phone);
-        if (user == null) {
-            user = new User();
-            user.setPhone(phone);
-            // Leave username null so ProfileSetupScreen can handle it!
-            user.setUsername(null); 
-            return repo.save(user);
-        }
-        return user;
+        // ✅ Correct way to handle Optional: find it, or create a new one if empty
+        return repo.findByPhone(phone).orElseGet(() -> {
+            User newUser = new User();
+            newUser.setPhone(phone);
+            newUser.setUsername("User_" + phone.substring(phone.length() - 4)); // Default username
+            return repo.save(newUser);
+        });
     }
 
     public User save(User user) {
