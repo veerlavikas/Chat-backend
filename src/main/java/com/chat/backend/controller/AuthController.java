@@ -19,7 +19,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +36,9 @@ public class AuthController {
     @Value("${google.client.id}")
     private String googleClientId;
 
+    // ✅ ADDED: The iOS Client ID used by Expo Go
+    private final String googleIosClientId = "935335713515-auit82o1a9opsld52ge1t7lft2v0809g.apps.googleusercontent.com";
+
     public AuthController(AuthService authService, JwtUtil jwtUtil, BCryptPasswordEncoder encoder, OtpRepository otpRepository, JavaMailSender mailSender) {
         this.authService = authService;
         this.jwtUtil = jwtUtil;
@@ -44,45 +47,56 @@ public class AuthController {
         this.mailSender = mailSender;
     }
 
-    // ✅ SEND OTP (Unchanged)
+    // ✅ FIXED: Added Terminal Bypass & Error Exposing
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> request) {
         String email = request.get("email"); 
         String code = String.valueOf((int)(Math.random() * 900000) + 100000);
+        
         OtpVerification otp = new OtpVerification(email, code);
         otpRepository.save(otp);
+
+        // ✅ TERMINAL BYPASS: Read the OTP right here in your console!
+        System.out.println("\n========================================");
+        System.out.println("🔔 DEBUG OTP FOR " + email + " IS: " + code);
+        System.out.println("========================================\n");
+
         try {
             SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("veerlavikas9294@gmail.com"); // explicitly setting 'from' helps avoid spam blocks
             message.setTo(email);
             message.setSubject("Chat App Verification Code");
             message.setText("Your verification code is: " + code);
             mailSender.send(message);
             return ResponseEntity.ok(Map.of("message", "OTP sent successfully"));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("message", "Failed to send email"));
+            // ✅ This will print the exact reason Gmail is failing (e.g. Auth failure, 2FA required)
+            System.err.println("❌ GMAIL ERROR: " + e.getMessage());
+            e.printStackTrace(); 
+            return ResponseEntity.status(500).body(Map.of("message", "Failed to send email. Check server console."));
         }
     }
 
-    // ✅ VERIFY SIGNUP (Unchanged)
+    // ✅ FIXED: Generates and returns JWT Token on successful verification
     @PostMapping("/verify-signup")
     public ResponseEntity<?> verifyAndSignup(@RequestBody SignupRequest dto) {
         Optional<OtpVerification> otpData = otpRepository.findTopByEmailOrderByExpiryTimeDesc(dto.getEmail());
         if (otpData.isPresent() && 
             otpData.get().getCode().equals(dto.getOtp()) && 
             otpData.get().getExpiryTime().isAfter(LocalDateTime.now())) {
+            
             User user = authService.register(dto);
             otpRepository.deleteByEmail(dto.getEmail()); 
-            return ResponseEntity.ok(user);
+            
+            // ✅ Generate token for the new user so React Native can log them in
+            String token = jwtUtil.generateToken(user.getPhone());
+            return ResponseEntity.ok(Map.of("token", token, "user", user));
         }
-        return ResponseEntity.status(400).body("Invalid or expired OTP");
+        return ResponseEntity.status(400).body(Map.of("message", "Invalid or expired OTP"));
     }
 
-    /**
-     * ✅ FIXED LOGIN: Handled Optional<User>
-     */
     @PostMapping("/login") 
     public Map<String, String> login(@RequestBody LoginRequest dto) {
-        // authService.login returns Optional<User>
         User dbUser = authService.login(dto.getPhone())
                 .orElseThrow(() -> new RuntimeException("User not found")); 
 
@@ -94,9 +108,7 @@ public class AuthController {
         return Map.of("token", token);
     }
 
-    /**
-     * ✅ FIXED GOOGLE AUTH: Handled Optional types
-     */
+    // ✅ FIXED: Configured Audience to accept both Web and iOS tokens
     @PostMapping("/google")
     public ResponseEntity<?> googleAuth(@RequestBody Map<String, String> request) {
         String idTokenString = request.get("idToken");
@@ -104,7 +116,8 @@ public class AuthController {
 
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                    .setAudience(Collections.singletonList(googleClientId)) 
+                    // ✅ Allow BOTH client IDs. This fixes the "Invalid Google ID token" error.
+                    .setAudience(Arrays.asList(googleClientId, googleIosClientId)) 
                     .build();
 
             GoogleIdToken idToken = verifier.verify(idTokenString);
@@ -114,7 +127,6 @@ public class AuthController {
                 String email = payload.getEmail();
                 String name = (String) payload.get("name");
 
-                // ✅ Change 1: Get Optional and check if present
                 Optional<User> userOpt = authService.getUserByEmail(email); 
                 User finalUser;
 
@@ -143,10 +155,10 @@ public class AuthController {
                 return ResponseEntity.ok(Map.of("token", jwt, "phone", finalUser.getPhone()));
 
             } else {
-                return ResponseEntity.status(401).body("Invalid Google ID token.");
+                return ResponseEntity.status(401).body(Map.of("message", "Invalid Google ID token."));
             }
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Google authentication failed: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("message", "Google authentication failed: " + e.getMessage()));
         }
     }
 }
