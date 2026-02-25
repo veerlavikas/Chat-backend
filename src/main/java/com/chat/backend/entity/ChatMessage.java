@@ -24,9 +24,10 @@ public class ChatMessage {
     @Column(name = "group_id")
     private Long groupId;
 
-    @Column(length = 2000) // Increased length for longer AI responses or encrypted text
+ // Add this annotation right above your content variable
+    @Column(columnDefinition = "TEXT")
     private String content;
-
+    
     @Column(name = "media_url")
     private String mediaUrl;
 
@@ -35,6 +36,17 @@ public class ChatMessage {
     // WhatsApp-style status (0=Sending, 1=Sent, 2=Delivered, 3=Seen)
     @Column(nullable = false)
     private int status = 1; 
+    
+    @Column(name = "sender_name")
+    private String senderName;
+
+    public String getSenderName() { return senderName; }
+    public void setSenderName(String senderName) { this.senderName = senderName; }
+    
+ // Add this annotation right above your content variable
+    
+    
+    
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

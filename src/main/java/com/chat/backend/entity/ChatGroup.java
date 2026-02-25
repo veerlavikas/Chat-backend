@@ -3,6 +3,7 @@ package com.chat.backend.entity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -23,6 +24,14 @@ public class ChatGroup {
     // ✅ UPDATED: Identifies the admin by phone number string
     @Column(name = "admin_phone")
     private String adminPhone; 
+ // 🔥 NOW SUPPORTS MULTIPLE ADMINS!
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "group_admins", joinColumns = @JoinColumn(name = "group_id"))
+    @Column(name = "admin_phone")
+    private List<String> adminPhones = new ArrayList<>();
+
+    public List<String> getAdminPhones() { return adminPhones; }
+    public void setAdminPhones(List<String> adminPhones) { this.adminPhones = adminPhones; }
 
     // ✅ UPDATED: Stores phone numbers of all members
     @ElementCollection

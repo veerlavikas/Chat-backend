@@ -17,7 +17,7 @@ public class GeminiService {
         try {
             // ✅ Build the URL dynamically inside the method
             // This ensures the injected apiKey is ready to use
-            String geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+            String geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
 
             RestTemplate restTemplate = new RestTemplate();
 

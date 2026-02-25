@@ -13,8 +13,7 @@ import java.util.UUID;
 @Service
 public class MediaService {
 
-    // IMPORTANT: Make sure this matches your Render URL exactly
-    private final String BASE_URL = "https://chat-backend-9v66.onrender.com"; 
+    // ❌ REMOVED THE RENDER URL 
     private final String UPLOAD_DIR = "uploads/media/";
 
     public MediaService(MediaRepository repo) {
@@ -43,8 +42,7 @@ public class MediaService {
         Path path = Paths.get(UPLOAD_DIR + fileName);
         Files.write(path, file.getBytes());
 
-        // 3. RETURN THE FULL URL (This fixes the 404 error)
-        // Access path becomes: /uploads/media/filename.jpg
-        return BASE_URL + "/uploads/media/" + fileName; 
+        // 3. ✅ RETURN JUST THE FILENAME! (ChatBubble.js will add your Ngrok URL automatically)
+        return fileName; 
     }
 }

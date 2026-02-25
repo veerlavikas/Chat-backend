@@ -29,7 +29,9 @@ public class WebSecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(cs -> cs.disable()) 
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**", "/ws/**", "/uploads/**", "/api/users/by-phone/**").permitAll()
+                // ✅ FIX 1: Added "/error" so crashes don't mask themselves as 403s
+                .requestMatchers("/auth/**", "/ws/**", "/uploads/**", "/api/users/by-phone/**", "/error").permitAll()
+                .requestMatchers("/api/chat/**").authenticated() 
                 .anyRequest().authenticated()
             )
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
@@ -44,7 +46,9 @@ public class WebSecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList("*")); 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        
+        // ✅ FIX 2: Allowed all headers so the ngrok-skip-browser-warning doesn't trigger a CORS block!
+        configuration.setAllowedHeaders(Arrays.asList("*")); 
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

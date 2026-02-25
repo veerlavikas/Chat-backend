@@ -38,11 +38,17 @@ public class JwtFilter extends OncePerRequestFilter {
                 String phone = jwtUtil.extractPhone(token);
 
                 if (phone != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    Optional<User> user = userService.getByPhone(phone);
+                    
+                    Optional<User> userOpt = userService.getByPhone(phone);
 
-                    if (user != null) {
+                    // ✅ FIX 1: Use .isPresent() instead of != null
+                    if (userOpt.isPresent()) {
+                        
+                        // ✅ FIX 2: Extract the actual user from the Optional box using .get()
+                        User actualUser = userOpt.get();
+                        
                         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                                user, null, Collections.emptyList()
+                                actualUser, null, Collections.emptyList() // Pass actualUser here!
                         );
                         SecurityContextHolder.getContext().setAuthentication(auth);
                     }

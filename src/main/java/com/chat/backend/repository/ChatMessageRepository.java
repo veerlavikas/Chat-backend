@@ -1,10 +1,12 @@
 package com.chat.backend.repository;
 
 import com.chat.backend.entity.ChatMessage;
+
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -45,4 +47,8 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     // ✅ 6. Cleanup task
     void deleteByCreatedAtBefore(LocalDateTime time);
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM ChatMessage c WHERE (c.senderPhone = :p1 AND c.receiverPhone = :p2) OR (c.senderPhone = :p2 AND c.receiverPhone = :p1)")
+    void deleteChatHistory(String p1, String p2);
 }
