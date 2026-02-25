@@ -1,48 +1,38 @@
 package com.chat.backend.service;
 
-import com.chat.backend.repository.MediaRepository;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.File;
+
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.UUID;
+import java.util.Map;
 
 @Service
 public class MediaService {
 
-    // ❌ REMOVED THE RENDER URL 
-    private final String UPLOAD_DIR = "uploads/media/";
+    @Autowired
+    private Cloudinary cloudinary;
 
-    public MediaService(MediaRepository repo) {
-        File directory = new File(UPLOAD_DIR);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
-    }
-
+    /**
+     * Uploads file to Cloudinary and returns PUBLIC URL
+     * This will work for image / audio / video
+     */
     public String saveFile(MultipartFile file) throws IOException {
-        if (file.isEmpty()) {
+        if (file == null || file.isEmpty()) {
             throw new IOException("File is empty");
         }
 
-        // 1. Generate unique filename
-        String originalName = file.getOriginalFilename();
-        String extension = "";
-        if (originalName != null && originalName.contains(".")) {
-             extension = originalName.substring(originalName.lastIndexOf("."));
-        } else {
-             extension = ".jpg"; // Default fallback
-        }
-        String fileName = UUID.randomUUID().toString() + extension;
+        Map uploadResult = cloudinary.uploader().upload(
+            file.getBytes(),
+            ObjectUtils.asMap(
+                "resource_type", "auto",   // auto-detect image/video/audio
+                "folder", "chat_app/media"
+            )
+        );
 
-        // 2. Save file to "uploads/media/"
-        Path path = Paths.get(UPLOAD_DIR + fileName);
-        Files.write(path, file.getBytes());
-
-        // 3. ✅ RETURN JUST THE FILENAME! (ChatBubble.js will add your Ngrok URL automatically)
-        return fileName; 
+        // ✅ ALWAYS return secure HTTPS URL
+        return uploadResult.get("secure_url").toString();
     }
 }
