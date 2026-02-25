@@ -2,6 +2,7 @@ package com.chat.backend.controller;
 
 import com.chat.backend.entity.User;
 import com.chat.backend.repository.UserRepository;
+import com.chat.backend.service.MediaService;
 import com.chat.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private MediaService mediaService;
 
     @GetMapping("/me")
     public ResponseEntity<?> getMyProfile(@AuthenticationPrincipal User user) {
@@ -40,47 +44,53 @@ public class UserController {
     ) {
         if (user == null) return ResponseEntity.status(401).body("Unauthorized");
         
+        // Update username if provided
         String newUsername = body.get("username");
-        if (newUsername == null || newUsername.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body("Username cannot be empty");
+        if (newUsername != null && !newUsername.trim().isEmpty()) {
+            user.setUsername(newUsername);
         }
 
-        user.setUsername(newUsername);
+        // 🔥 FIX: Actually save the Cloudinary URL to the database!
+        String newProfilePic = body.get("profilePic");
+        if (newProfilePic != null && !newProfilePic.trim().isEmpty()) {
+            user.setProfilePic(newProfilePic);
+        }
+
+        // Keep status updated too if you pass it
+        String newStatus = body.get("status");
+        if (newStatus != null && !newStatus.trim().isEmpty()) {
+            user.setStatus(newStatus);
+        }
+
         userRepo.save(user); 
         
         return ResponseEntity.ok(Map.of(
-                "message", "Username updated successfully",
-                "username", newUsername
+                "message", "Profile updated successfully",
+                "user", user // Send back the whole updated user object
         ));
     }
-
     @PostMapping("/upload-dp")
     public ResponseEntity<?> uploadProfilePic(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal User user
     ) throws IOException {
 
-        if (user == null) return ResponseEntity.status(401).body("Unauthorized");
-
-        String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-        Path uploadPath = Paths.get("uploads/profile");
-
-        if (!Files.exists(uploadPath)) {
-            Files.createDirectories(uploadPath);
+        if (user == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
         }
 
-        Path filePath = uploadPath.resolve(fileName);
-        Files.copy(file.getInputStream(), filePath);
+        // 🔥 Upload to Cloudinary via MediaService
+        String imageUrl = mediaService.saveFile(file);
 
-        user.setProfilePic(fileName);
+        // 🔥 Save FULL URL in DB
+        user.setProfilePic(imageUrl);
         userRepo.save(user);
 
         return ResponseEntity.ok(Map.of(
                 "message", "Profile picture updated",
-                "profilePic", fileName
+                "profilePic", imageUrl
         ));
     }
-
     @GetMapping("/by-phone/{phone}")
     public ResponseEntity<?> getUserByPhone(@PathVariable String phone) {
         String normalizedPhone = phone.replace("+91", "").trim(); 
