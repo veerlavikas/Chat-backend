@@ -7,16 +7,15 @@ import com.chat.backend.entity.User;
 import com.chat.backend.repository.OtpRepository;
 import com.chat.backend.security.JwtUtil;
 import com.chat.backend.service.AuthService;
+import com.chat.backend.service.EmailService; // ✅ NEW BREVO EMAIL SERVICE
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.transaction.annotation.Transactional; // ✅ CRITICAL: Added Transactional import
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -32,7 +31,7 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final BCryptPasswordEncoder encoder;
     private final OtpRepository otpRepository;
-    private final JavaMailSender mailSender; 
+    private final EmailService emailService; // ✅ SWAPPED TO EMAIL SERVICE
 
     @Value("${google.client.id}")
     private String googleClientId;
@@ -40,12 +39,12 @@ public class AuthController {
     // ✅ iOS Client ID used by Expo Go
     private final String googleIosClientId = "935335713515-auit82o1a9opsld52ge1t7lft2v0809g.apps.googleusercontent.com";
 
-    public AuthController(AuthService authService, JwtUtil jwtUtil, BCryptPasswordEncoder encoder, OtpRepository otpRepository, JavaMailSender mailSender) {
+    public AuthController(AuthService authService, JwtUtil jwtUtil, BCryptPasswordEncoder encoder, OtpRepository otpRepository, EmailService emailService) {
         this.authService = authService;
         this.jwtUtil = jwtUtil;
         this.encoder = encoder;
         this.otpRepository = otpRepository;
-        this.mailSender = mailSender;
+        this.emailService = emailService; // ✅ INJECTED
     }
 
     @PostMapping("/send-otp")
@@ -56,21 +55,18 @@ public class AuthController {
         OtpVerification otp = new OtpVerification(email, code);
         otpRepository.save(otp);
 
-        // ✅ TERMINAL BYPASS
+        // ✅ TERMINAL BYPASS (Still great for testing!)
         System.out.println("\n========================================");
         System.out.println("🔔 DEBUG OTP FOR " + email + " IS: " + code);
         System.out.println("========================================\n");
 
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("veerlavikas9294@gmail.com"); 
-            message.setTo(email);
-            message.setSubject("Chat App Verification Code");
-            message.setText("Your verification code is: " + code);
-            mailSender.send(message);
+            // 🔥 CRITICAL FIX: Send via Brevo HTTPS API to bypass Render's SMTP block
+            emailService.sendOtpEmail(email, code);
+            
             return ResponseEntity.ok(Map.of("message", "OTP sent successfully"));
         } catch (Exception e) {
-            System.err.println("❌ GMAIL ERROR: " + e.getMessage());
+            System.err.println("❌ EMAIL API ERROR: " + e.getMessage());
             e.printStackTrace(); 
             return ResponseEntity.status(500).body(Map.of("message", "Failed to send email. Check server console."));
         }
