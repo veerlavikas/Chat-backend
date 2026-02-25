@@ -5,24 +5,21 @@ import com.chat.backend.entity.User;
 import com.chat.backend.repository.UserRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import java.util.Optional;
 
 @Service
 public class AuthService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
-    private final JavaMailSender mailSender; // ✅ Injected Mail Sender
 
-    // ✅ Updated Constructor
-    public AuthService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder, JavaMailSender mailSender) {
+    // ✅ FIXED: Removed JavaMailSender to stop the "Bean Not Found" crash
+    public AuthService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.mailSender = mailSender;
     }
 
     public User register(SignupRequest dto) {
+        // Use existsByPhone for better performance if you have it in your repo
         if (userRepository.findByPhone(dto.getPhone()).isPresent()) {
             throw new RuntimeException("User with this phone already exists");
         }
@@ -32,6 +29,10 @@ public class AuthService {
         user.setEmail(dto.getEmail()); 
         user.setPhone(dto.getPhone()); 
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        
+        // Set a default status so it's not null
+        user.setStatus("Hey there! I am using ChatApp");
+        
         return userRepository.save(user);
     }
 
@@ -43,30 +44,6 @@ public class AuthService {
         return userRepository.findByEmail(email);
     }
 
-    /**
-     * ✅ NEW: Method to actually send the OTP Email
-     */
-    public void sendOtpEmail(String toEmail, String otpCode) {
-        // 1. MUST-HAVE FOR TESTING: Print to console so you can bypass the email wait!
-        System.out.println("\n========================================");
-        System.out.println("🔔 DEBUG OTP FOR " + toEmail + " IS: " + otpCode);
-        System.out.println("========================================\n");
-
-        // 2. Try to send the actual email
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("veerlavikas9294@gmail.com"); // Matches your properties file
-            message.setTo(toEmail);
-            message.setSubject("Your Chat App Verification Code");
-            message.setText("Welcome to the Chat App!\n\nYour 6-digit verification code is: " + otpCode + "\n\nThis code will expire in 10 minutes.");
-            
-            mailSender.send(message);
-            System.out.println("✅ Email successfully sent to " + toEmail);
-            
-        } catch (Exception e) {
-            // If Gmail blocks it, this catch block will tell us exactly why!
-            System.err.println("❌ FAILED TO SEND EMAIL to " + toEmail);
-            System.err.println("Reason: " + e.getMessage());
-        }
-    }
+    // ❌ REMOVED sendOtpEmail: This logic now lives in EmailService.java 
+    // and is called by AuthController.sendOtp.
 }
