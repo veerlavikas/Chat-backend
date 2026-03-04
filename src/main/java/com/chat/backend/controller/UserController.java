@@ -96,8 +96,8 @@ public class UserController {
         String normalizedPhone = phone.replace("+91", "").trim(); 
         
         Optional<User> user = userRepo.findByPhone(normalizedPhone);
-        if (user == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(user);
+        if (user.isEmpty()) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(user.get());
     }
 
     @GetMapping("/all")

@@ -21,9 +21,7 @@ public class ChatGroup {
     
     private String description;
 
-    // ✅ UPDATED: Identifies the admin by phone number string
-    @Column(name = "admin_phone")
-    private String adminPhone; 
+
  // 🔥 NOW SUPPORTS MULTIPLE ADMINS!
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "group_admins", joinColumns = @JoinColumn(name = "group_id"))
@@ -59,8 +57,7 @@ public class ChatGroup {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public String getAdminPhone() { return adminPhone; }
-    public void setAdminPhone(String adminPhone) { this.adminPhone = adminPhone; }
+
 
     public List<String> getMemberPhones() { return memberPhones; }
     public void setMemberPhones(List<String> memberPhones) { this.memberPhones = memberPhones; }

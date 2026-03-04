@@ -99,16 +99,18 @@ public class AuthController {
     }
 
     @PostMapping("/login") 
-    public Map<String, String> login(@RequestBody LoginRequest dto) {
-        User dbUser = authService.login(dto.getPhone())
-                .orElseThrow(() -> new RuntimeException("User not found")); 
-
+    public ResponseEntity<?> login(@RequestBody LoginRequest dto) {
+        Optional<User> userOpt = authService.login(dto.getPhone());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(401).body(Map.of("message", "User not found"));
+        }
+        User dbUser = userOpt.get();
         if (!encoder.matches(dto.getPassword(), dbUser.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid credentials"));
         }
         
         String token = jwtUtil.generateToken(dbUser.getPhone()); 
-        return Map.of("token", token);
+        return ResponseEntity.ok(Map.of("token", token));
     }
 
     @PostMapping("/google")

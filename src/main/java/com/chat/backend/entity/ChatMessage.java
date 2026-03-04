@@ -43,11 +43,6 @@ public class ChatMessage {
     public String getSenderName() { return senderName; }
     public void setSenderName(String senderName) { this.senderName = senderName; }
     
- // Add this annotation right above your content variable
-    
-    
-    
-
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -1,6 +1,7 @@
 package com.chat.backend.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "users")
@@ -18,6 +19,7 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email; // ✅ Used for OTPs and Google OAuth
 
+    @JsonIgnore
     @Column(nullable = true) 
     private String password;
 
